@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import export_graphviz
 import pydot
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+mpl.use('GTK3Agg')
 
 features = pd.read_csv('temps.csv')
 features.head(5)
@@ -85,3 +89,42 @@ export_graphviz(
 
 # 将graph图输出为png图片文件
 graph.write_png('tree.png')
+
+print('该决策树的最大深度（层数）是:', tree.tree_.max_depth)
+
+# 决策树层数过多，复杂性较高
+# 精简决策树，设置max_depth = 3
+rf_small = RandomForestRegressor(n_estimators=10, max_depth=3, random_state=42)
+rf_small.fit(train_features, train_targets)
+
+tree_small = rf_small.estimators_[5]
+export_graphviz(tree_small, out_file='small_tree.dot',
+                feature_names=feature_list, rounded=True, precision=1)
+
+(graph, ) = pydot.graph_from_dot_file('small_tree.dot')
+graph.write_png('small_tree.png')
+
+# 获取特征重要性信息
+importances = list(rf.feature_importances_)
+
+feature_importantces = [(feature, round(importance, 2))
+                        for feature, importance in zip(feature_list, importances)]
+[print('Variable: {:20} Importance: {}'.format(*pair))
+ for pair in feature_importantces]
+
+# 特征重要性可视化
+# 设置画布风格
+plt.style.use('fivethirtyeight')
+
+# list of x locations for plotting
+x_values = list(range(len(importances)))
+
+# make a bar chart
+plt.bar(x_values, importances, orientation='vertical')
+# tick labels for x axis
+plt.xticks(x_values, feature_list, rotation='vertical')
+# Axis labels and title
+plt.ylabel('Importance')
+plt.xlabel('Variable')
+plt.title('Variable Importance')
+plt.show()
